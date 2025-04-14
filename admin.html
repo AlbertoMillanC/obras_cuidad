@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administración - Mapa de Obras Públicas</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --background-color: #f5f6fa;
+            --text-color: #2d3436;
+            --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --hover-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+        }
+
+        .navbar {
+            background-color: var(--primary-color);
+            padding: 0.8rem;
+            color: white;
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 1000;
+            box-shadow: var(--card-shadow);
+        }
+
+        .navbar-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 1rem;
+        }
+
+        .navbar-brand {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: white;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            transition: transform 0.2s ease;
+        }
+
+        .navbar-brand:hover {
+            transform: translateY(-1px);
+        }
+
+        .navbar-brand i {
+            margin-right: 12px;
+            font-size: 1.6rem;
+        }
+
+        .navbar-links {
+            display: flex;
+            gap: 24px;
+            align-items: center;
+        }
+
+        .navbar-links a {
+            color: white;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+        }
+
+        .navbar-links a:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .logout-btn {
+            background-color: var(--accent-color);
+            padding: 10px 20px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+        }
+
+        .logout-btn:hover {
+            background-color: #c0392b;
+            transform: translateY(-1px);
+            box-shadow: var(--hover-shadow);
+        }
+
+        #loginForm {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: var(--card-shadow);
+            z-index: 1000;
+            width: 320px;
+            text-align: center;
+        }
+
+        #loginForm h2 {
+            color: var(--primary-color);
+            margin: 0 0 1.5rem 0;
+            font-size: 1.8rem;
+        }
+
+        .obra-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .obra-form input {
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .obra-form input:focus {
+            outline: none;
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+        }
+
+        .login-button {
+            background-color: var(--secondary-color);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .login-button:hover {
+            background-color: #2980b9;
+            transform: translateY(-1px);
+            box-shadow: var(--hover-shadow);
+        }
+
+        #adminPanel {
+            display: none;
+            margin-top: 60px;
+            padding: 20px;
+        }
+
+        #map {
+            height: calc(100vh - 60px);
+            width: 100%;
+            margin-top: 60px;
+            z-index: 1;
+        }
+
+        .control-panel {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: var(--card-shadow);
+            margin: 20px;
+            transition: all 0.3s ease;
+            position: absolute;
+            top: 60px;
+            right: 20px;
+            width: 320px;
+            z-index: 2;
+        }
+
+        .control-panel h3 {
+            color: var(--primary-color);
+            margin: 0 0 1.5rem 0;
+            font-size: 1.4rem;
+            font-weight: 600;
+        }
+
+        .obras-list {
+            margin-top: 20px;
+            border-top: 2px solid #e2e8f0;
+            padding-top: 20px;
+        }
+
+        .obra-item {
+            background: white;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            border: 1px solid #e2e8f0;
+            transition: all 0.3s ease;
+        }
+
+        .obra-item:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--card-shadow);
+        }
+
+        .obra-buttons {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .edit-btn, .delete-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .edit-btn {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        .edit-btn:hover {
+            background-color: #2980b9;
+            transform: translateY(-1px);
+        }
+
+        .delete-btn {
+            background-color: var(--accent-color);
+            color: white;
+        }
+
+        .delete-btn:hover {
+            background-color: #c0392b;
+            transform: translateY(-1px);
+        }
+
+        .mensaje {
+            padding: 12px;
+            border-radius: 8px;
+            margin: 12px 0;
+            font-weight: 500;
+        }
+
+        .mensaje.exito {
+            background-color: #2ecc71;
+            color: white;
+        }
+
+        .mensaje.error {
+            background-color: var(--accent-color);
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            .control-panel {
+                margin: 10px;
+                padding: 16px;
+            }
+
+            .obra-buttons {
+                flex-direction: column;
+            }
+
+            .edit-btn, .delete-btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        .footer {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 40px 0 20px;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            z-index: 1000;
+            transform: translateY(calc(100% - 50px));
+            transition: transform 0.3s ease;
+        }
+
+        .footer:hover {
+            transform: translateY(0);
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 40px;
+        }
+
+        .footer-section {
+            margin-bottom: 20px;
+        }
+
+        .footer-section h4 {
+            color: #ecf0f1;
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .footer-section p {
+            color: #bdc3c7;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+        .footer-links {
+            list-style: none;
+            padding: 0;
+        }
+
+        .footer-links li {
+            margin-bottom: 10px;
+        }
+
+        .footer-links a {
+            color: #bdc3c7;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: color 0.3s ease;
+        }
+
+        .footer-links a:hover {
+            color: white;
+        }
+
+        .social-links {
+            display: flex;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .social-links a {
+            color: #bdc3c7;
+            text-decoration: none;
+            font-size: 1.5rem;
+            transition: color 0.3s ease;
+        }
+
+        .social-links a:hover {
+            color: white;
+        }
+
+        .footer-bottom {
+            text-align: center;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            color: #bdc3c7;
+            font-size: 0.9rem;
+        }
+
+        .footer-bottom a {
+            color: #3498db;
+            text-decoration: none;
+        }
+
+        .footer-bottom a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            .footer {
+                transform: translateY(calc(100% - 40px));
+            }
+
+            .footer-content {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .footer-section {
+                margin-bottom: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="loginForm">
+        <nav class="navbar">
+            <div class="navbar-content">
+                <a href="index.html" class="navbar-brand">
+                    <i class="fas fa-map-marked-alt"></i>
+                    Obras Tunja - Admin
+                </a>
+                <div class="navbar-links">
+                    <a href="index.html"><i class="fas fa-home"></i> Volver al Mapa</a>
+                </div>
+            </div>
+        </nav>
+        <h2>Iniciar Sesión</h2>
+        <div class="mensaje" id="loginMensaje"></div>
+        <div class="obra-form">
+            <input type="text" id="username" placeholder="Usuario">
+            <input type="password" id="password" placeholder="Contraseña">
+            <button class="login-button" onclick="login()">Iniciar Sesión</button>
+        </div>
+    </div>
+
+    <div id="adminPanel">
+        <nav class="navbar">
+            <div class="navbar-content">
+                <a href="index.html" class="navbar-brand">
+                    <i class="fas fa-map-marked-alt"></i>
+                    Obras Tunja - Panel Admin
+                </a>
+                <div class="navbar-links">
+                    <a href="index.html"><i class="fas fa-map"></i> Ver Mapa Público</a>
+                    <button class="logout-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</button>
+                </div>
+            </div>
+        </nav>
+        <div id="map"></div>
+        <div class="control-panel">
+            <h3>Administrar Obras</h3>
+            <div class="mensaje" id="mensaje"></div>
+            <div class="obra-form">
+                <input type="hidden" id="obraId">
+                <input type="text" id="nombre" placeholder="Nombre de la obra" required>
+                <textarea id="descripcion" placeholder="Descripción detallada de la obra" required></textarea>
+                <select id="estado" required>
+                    <option value="">Seleccione el estado</option>
+                    <option value="En Progreso">En Progreso</option>
+                    <option value="Completada">Completada</option>
+                    <option value="Planificada">Planificada</option>
+                </select>
+                <input type="date" id="fecha_inicio" required>
+                <input type="date" id="fecha_fin">
+                <div class="ubicacion-actual">
+                    Ubicación seleccionada: <span id="coordenadas"></span>
+                </div>
+                <button onclick="guardarObra()">Guardar Obra</button>
+            </div>
+            <div class="obras-list" id="obrasList"></div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4>Panel de Administración</h4>
+                <p>Gestión y control de obras públicas en la ciudad de Tunja. Acceso exclusivo para personal autorizado.</p>
+                <div class="social-links">
+                    <a href="#" title="Manual de Usuario"><i class="fas fa-book"></i></a>
+                    <a href="#" title="Soporte Técnico"><i class="fas fa-headset"></i></a>
+                    <a href="#" title="Centro de Ayuda"><i class="fas fa-question-circle"></i></a>
+                </div>
+            </div>
+            <div class="footer-section">
+                <h4>Acciones Rápidas</h4>
+                <ul class="footer-links">
+                    <li><a href="#" onclick="mostrarFormularioObra()"><i class="fas fa-plus-circle"></i> Nueva Obra</a></li>
+                    <li><a href="#" onclick="actualizarListaObras()"><i class="fas fa-sync"></i> Actualizar Lista</a></li>
+                    <li><a href="#" onclick="exportarDatos()"><i class="fas fa-file-export"></i> Exportar Datos</a></li>
+                    <li><a href="#" onclick="mostrarAyuda()"><i class="fas fa-info-circle"></i> Ayuda</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Soporte Técnico</h4>
+                <ul class="footer-links">
+                    <li><a href="tel:+576098425577"><i class="fas fa-phone"></i> (60) 984-25577</a></li>
+                    <li><a href="mailto:soporte@tunja.gov.co"><i class="fas fa-envelope"></i> soporte@tunja.gov.co</a></li>
+                    <li><a href="#"><i class="fas fa-clock"></i> Disponible 24/7</a></li>
+                    <li><a href="#"><i class="fas fa-exclamation-circle"></i> Reportar Problema</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2025 Panel Administrativo - Sistema de Obras Públicas Tunja | <a href="#">Términos de Uso</a> | <a href="#">Política de Privacidad</a></p>
+        </div>
+    </footer>
+
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script>
+        // Credenciales de administrador (en producción esto debería estar en el servidor)
+        const ADMIN_USERNAME = 'adminTunja';
+        const ADMIN_PASSWORD = 'Obras2025#';
+
+        let map;
+        let obras = [];
+        let editandoObra = null;
+
+        function inicializarMapa() {
+            map = L.map('map').setView([5.5446, -73.3575], 13); // Coordenadas de Tunja, Boyacá
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: ' OpenStreetMap contributors'
+            }).addTo(map);
+
+            map.on('moveend', function() {
+                const center = map.getCenter();
+                document.getElementById('coordenadas').textContent = 
+                    `${center.lat.toFixed(6)}, ${center.lng.toFixed(6)}`;
+            });
+
+            cargarObras();
+        }
+
+        function login() {
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            console.log('Intentando login con:', username); // Para depuración
+
+            if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
+                document.getElementById('loginForm').style.display = 'none';
+                document.getElementById('adminPanel').style.display = 'block';
+                inicializarMapa();
+                mostrarMensaje('Sesión iniciada correctamente', 'exito');
+            } else {
+                console.log('Credenciales incorrectas'); // Para depuración
+                mostrarMensaje('Usuario o contraseña incorrectos', 'error', 'loginMensaje');
+            }
+        }
+
+        function logout() {
+            document.getElementById('loginForm').style.display = 'block';
+            document.getElementById('adminPanel').style.display = 'none';
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+        }
+
+        function mostrarMensaje(texto, tipo, elementId = 'mensaje') {
+            const mensaje = document.getElementById(elementId);
+            mensaje.textContent = texto;
+            mensaje.style.display = 'block';
+            mensaje.className = 'mensaje ' + tipo;
+            setTimeout(() => {
+                mensaje.style.display = 'none';
+            }, 3000);
+        }
+
+        function cargarObras() {
+            obras = JSON.parse(localStorage.getItem('obras') || '[]');
+            actualizarMapa();
+            actualizarListaObras();
+        }
+
+        function actualizarMapa() {
+            map.eachLayer((layer) => {
+                if (layer instanceof L.Marker) {
+                    map.removeLayer(layer);
+                }
+            });
+
+            obras.forEach(obra => {
+                L.marker([obra.latitud, obra.longitud])
+                    .bindPopup(`
+                        <h3>${obra.nombre}</h3>
+                        <p>${obra.descripcion}</p>
+                        <p><strong>Estado:</strong> ${obra.estado}</p>
+                        <p><strong>Inicio:</strong> ${obra.fecha_inicio}</p>
+                        <p><strong>Fin:</strong> ${obra.fecha_fin || 'Por determinar'}</p>
+                    `)
+                    .addTo(map);
+            });
+        }
+
+        function actualizarListaObras() {
+            const listaDiv = document.getElementById('obrasList');
+            listaDiv.innerHTML = '';
+            
+            obras.forEach((obra, index) => {
+                const obraDiv = document.createElement('div');
+                obraDiv.className = 'obra-item';
+                obraDiv.innerHTML = `
+                    <strong>${obra.nombre}</strong>
+                    <p>${obra.estado}</p>
+                    <div class="obra-buttons">
+                        <button class="edit-btn" onclick="editarObra(${index})">Editar</button>
+                        <button class="delete-btn" onclick="eliminarObra(${index})">Eliminar</button>
+                    </div>
+                `;
+                listaDiv.appendChild(obraDiv);
+            });
+        }
+
+        function limpiarFormulario() {
+            document.getElementById('obraId').value = '';
+            document.getElementById('nombre').value = '';
+            document.getElementById('descripcion').value = '';
+            document.getElementById('estado').value = '';
+            document.getElementById('fecha_inicio').value = '';
+            document.getElementById('fecha_fin').value = '';
+            editandoObra = null;
+        }
+
+        function editarObra(index) {
+            const obra = obras[index];
+            editandoObra = index;
+            
+            document.getElementById('obraId').value = index;
+            document.getElementById('nombre').value = obra.nombre;
+            document.getElementById('descripcion').value = obra.descripcion;
+            document.getElementById('estado').value = obra.estado;
+            document.getElementById('fecha_inicio').value = obra.fecha_inicio;
+            document.getElementById('fecha_fin').value = obra.fecha_fin || '';
+
+            map.setView([obra.latitud, obra.longitud], 15);
+        }
+
+        function eliminarObra(index) {
+            if (confirm('¿Está seguro de eliminar esta obra?')) {
+                obras.splice(index, 1);
+                localStorage.setItem('obras', JSON.stringify(obras));
+                cargarObras();
+                mostrarMensaje('Obra eliminada correctamente', 'exito');
+            }
+        }
+
+        function guardarObra() {
+            const nombre = document.getElementById('nombre').value.trim();
+            const descripcion = document.getElementById('descripcion').value.trim();
+            const estado = document.getElementById('estado').value;
+            const fecha_inicio = document.getElementById('fecha_inicio').value;
+            const fecha_fin = document.getElementById('fecha_fin').value;
+
+            if (!nombre || !descripcion || !estado || !fecha_inicio) {
+                mostrarMensaje('Por favor complete todos los campos requeridos', 'error');
+                return;
+            }
+
+            const center = map.getCenter();
+            const obra = {
+                nombre,
+                descripcion,
+                estado,
+                fecha_inicio,
+                fecha_fin,
+                latitud: center.lat,
+                longitud: center.lng
+            };
+
+            if (editandoObra !== null) {
+                obras[editandoObra] = obra;
+            } else {
+                obras.push(obra);
+            }
+
+            localStorage.setItem('obras', JSON.stringify(obras));
+            cargarObras();
+            limpiarFormulario();
+            mostrarMensaje('Obra guardada correctamente', 'exito');
+        }
+    </script>
+</body>
+</html>
